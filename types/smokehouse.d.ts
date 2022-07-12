@@ -28,7 +28,7 @@ declare global {
     export type ExpectedRunnerResult = {
       lhr: ExpectedLHR,
       artifacts?: Partial<Record<keyof Artifacts|'_maxChromiumVersion'|'_minChromiumVersion', any>>
-      networkRequests?: {length: number, _legacyOnly?: boolean, _fraggleRockOnly?: boolean};
+      networkRequests?: any;
     }
 
     export interface TestDfn {

@@ -54,6 +54,7 @@ const config = {
  */
 const expectations = {
   networkRequests: {
+    _excludeRunner: 'devtools',
     length: 5,
   },
   lhr: {
