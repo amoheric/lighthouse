@@ -54,8 +54,6 @@ const argv_ = y
   .argv;
 
 const argv = /** @type {Awaited<typeof argv_>} */ (argv_);
-/** @type {LH.Config.Json=} */
-const config = argv.config ? JSON.parse(argv.config) : undefined;
 
 /**
  * Ideally we would use `page.evaluate` instead of this,
@@ -222,6 +220,16 @@ function enableDevToolsThrottling() {
   toolbarRoot.querySelector('option[value="devtools"]').selected = true;
   toolbarRoot.querySelector('select').dispatchEvent(new Event('change'));
 }
+
+function disableLegacyNavigation() {
+  // @ts-expect-error global
+  const panel = UI.panels.lighthouse || UI.panels.audits;
+  const toolbarRoot = panel.contentElement.querySelector('.lighthouse-settings-pane .toolbar').shadowRoot;
+  const checkboxRoot = toolbarRoot.querySelector('span[is="dt-checkbox"]').shadowRoot;
+  const checkboxEl = checkboxRoot.querySelector('input');
+  checkboxEl.checked = false;
+  checkboxEl.dispatchEvent(new Event('change'));
+}
 /* eslint-enable */
 
 /**
@@ -286,11 +294,12 @@ async function installConsoleListener(inspectorSession, logs) {
 
 /**
  * @param {string} url
- * @param {LH.Config.Json=} config
- * @param {string[]=} chromeFlags
+ * @param {{config?: LH.Config.Json, chromeFlags?: string[], useLegacyNavigation?: boolean}} [options]
  * @return {Promise<{lhr: LH.Result, artifacts: LH.Artifacts, logs: string[]}>}
  */
-async function testUrlFromDevtools(url, config, chromeFlags) {
+async function testUrlFromDevtools(url, options = {}) {
+  const {config, chromeFlags, useLegacyNavigation} = options;
+
   const browser = await puppeteer.launch({
     executablePath: getChromePath(),
     args: chromeFlags,
@@ -314,6 +323,10 @@ async function testUrlFromDevtools(url, config, chromeFlags) {
     await page.goto(url, {waitUntil: ['domcontentloaded']});
 
     await waitForFunction(inspectorSession, waitForLighthouseReady);
+
+    if (!useLegacyNavigation) {
+      await evaluateInSession(inspectorSession, disableLegacyNavigation);
+    }
 
     let configPromise = Promise.resolve();
     if (config) {
@@ -366,6 +379,8 @@ async function readUrlList() {
 async function main() {
   const chromeFlags = parseChromeFlags(argv['chromeFlags']);
   const outputDir = argv['output-dir'];
+  /** @type {LH.Config.Json=} */
+  const config = argv.config ? JSON.parse(argv.config) : undefined;
 
   // Create output directory.
   if (fs.existsSync(outputDir)) {
@@ -401,7 +416,7 @@ async function main() {
         timeout = setTimeout(reject, 100_000, new Error('Timed out waiting for Lighthouse to run'));
       });
       const {lhr, artifacts} = await Promise.race([
-        testUrlFromDevtools(urlList[i], config, chromeFlags),
+        testUrlFromDevtools(urlList[i], {config, chromeFlags}),
         timeoutPromise,
       ]).finally(() => {
         clearTimeout(timeout);
