@@ -29,6 +29,7 @@ import puppeteer from 'puppeteer-core';
 import yargs from 'yargs';
 import * as yargsHelpers from 'yargs/helpers';
 import {getChromePath} from 'chrome-launcher';
+import esMain from 'es-main';
 
 import {parseChromeFlags} from '../../lighthouse-cli/run.js';
 
@@ -57,6 +58,10 @@ const argv = /** @type {Awaited<typeof argv_>} */ (argv_);
 const config = argv.config ? JSON.parse(argv.config) : undefined;
 
 /**
+ * Ideally we would use `page.evaluate` instead of this,
+ * but we can't get a Puppeteer page object for the DevTools frontend.
+ * This is a light re-implementation of `page.evaluate`.
+ *
  * @template R [unknown]
  * @param {puppeteer.CDPSession} session
  * @param {string|(() => (R|Promise<R>))} fn
@@ -86,6 +91,8 @@ async function evaluateInSession(session, fn, deps) {
 }
 
 /**
+ * Similar to {@link evaluateInSession}, this is a light re-implementation of Puppeteer's `page.waitForFunction`.
+ *
  * @template R [unknown]
  * @param {puppeteer.CDPSession} session
  * @param {() => (R|Promise<R>)} fn
@@ -184,20 +191,21 @@ async function runLighthouse() {
 
   /** @type {Promise<{lhr: LH.Result, artifacts: LH.Artifacts}>} */
   const resultPromise = new Promise((resolve, reject) => {
-    const methodName = panel.__proto__.buildReportUI ?
-      'buildReportUI' : '_buildReportUI';
+    const methodName = panel.__proto__.buildReportUI ? 'buildReportUI' : '_buildReportUI';
     addSniffer(
       panel.__proto__,
       methodName,
-      // @ts-expect-error implicit any
+      /**
+       * @param {LH.Result} lhr
+       * @param {LH.Artifacts} artifacts
+       */
       (lhr, artifacts) => resolve({lhr, artifacts})
     );
 
     addSniffer(
       panel.statusView.__proto__,
       'renderBugReport',
-      // @ts-expect-error implicit any
-      (err) => reject(err)
+      reject,
     );
   });
 
@@ -221,10 +229,16 @@ function enableDevToolsThrottling() {
  * @param {puppeteer.CDPSession} inspectorSession
  * @param {LH.Config.Json} config
  */
-async function installCustomConfig(browser, inspectorSession, config) {
+async function installCustomLighthouseConfig(browser, inspectorSession, config) {
+  // Prevent modification for tests that are retried.
+  config = JSON.parse(JSON.stringify(config));
+
   // Screen emulation is handled by DevTools, so we should avoid adding our own.
   if (config.settings?.screenEmulation) {
-    throw new Error('Configs that modify device emulation are unsupported in DevTools');
+    throw new Error(
+      'Configs that modify device emulation are unsupported in DevTools:\n' +
+      JSON.stringify(config, null, 2)
+    );
   }
   if (!config.settings) config.settings = {};
   config.settings.screenEmulation = {disabled: true};
@@ -317,7 +331,7 @@ async function testUrlFromDevtools(url, config, chromeFlags) {
         await evaluateInSession(inspectorSession, enableDevToolsThrottling);
       }
 
-      configPromise = installCustomConfig(browser, inspectorSession, config);
+      configPromise = installCustomLighthouseConfig(browser, inspectorSession, config);
     }
 
     const [result] = await Promise.all([
@@ -349,7 +363,7 @@ async function readUrlList() {
   return new Promise(resolve => rl.on('close', () => resolve(urlList)));
 }
 
-async function run() {
+async function main() {
   const chromeFlags = parseChromeFlags(argv['chromeFlags']);
   const outputDir = argv['output-dir'];
 
@@ -407,8 +421,8 @@ async function run() {
   if (errorCount) process.exit(1);
 }
 
-if (process.argv.includes(import.meta.url.replace('file://', ''))) {
-  run();
+if (esMain(import.meta)) {
+  await main();
 }
 
 export {testUrlFromDevtools};
