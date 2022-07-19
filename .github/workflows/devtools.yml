@@ -165,13 +165,11 @@ jobs:
       #   errors-expired-ssl errors-infinite-loop dbw
       # Disabled because Chrome will follow the redirect first, and Lighthouse will only ever see/run the final URL.
       #   redirects-client-paint-server redirects-multiple-server redirects-single-server redirects-single-client
-      # Disabled because Indexedb is not cleared and the runtime warning persists
-      #   pwa-svgomg
       # Disabled because these tests use a config that cannot be fully configured in DevTools.
       #   metrics-tricky-tti metrics-tricky-tti-late-fcp screenshot
       # Disabled because ?
       #   byte-efficiency byte-gzip perf-preload
-      run: xvfb-run --auto-servernum yarn smoke --runner devtools --shard=${{ matrix.smoke-test-shard }}/${{ strategy.job-total }} --jobs=3 --retries=2 --invert-match byte-efficiency byte-gzip dbw errors-expired-ssl errors-infinite-loop metrics-tricky-tti metrics-tricky-tti-late-fcp perf-preload pwa-svgomg redirects-client-paint-server redirects-history-push-state redirects-multiple-server redirects-single-server redirects-single-client redirects-scripts screenshot
+      run: xvfb-run --auto-servernum yarn smoke --runner devtools --shard=${{ matrix.smoke-test-shard }}/${{ strategy.job-total }} --jobs=3 --retries=2 --invert-match byte-efficiency byte-gzip dbw errors-expired-ssl errors-infinite-loop metrics-tricky-tti metrics-tricky-tti-late-fcp perf-preload redirects-client-paint-server redirects-history-push-state redirects-multiple-server redirects-single-server redirects-single-client redirects-scripts screenshot
       working-directory: ${{ github.workspace }}/lighthouse
 
     - name: Upload failures
