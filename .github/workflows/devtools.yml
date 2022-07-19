@@ -167,7 +167,7 @@ jobs:
       #   redirects-client-paint-server redirects-multiple-server redirects-single-server redirects-single-client
       # Disabled because these tests use a config that cannot be fully configured in DevTools.
       #   metrics-tricky-tti metrics-tricky-tti-late-fcp screenshot
-      # Disabled because ?
+      # Disabled because of differences that need further investigation
       #   byte-efficiency byte-gzip perf-preload
       run: xvfb-run --auto-servernum yarn smoke --runner devtools --shard=${{ matrix.smoke-test-shard }}/${{ strategy.job-total }} --jobs=3 --retries=2 --invert-match byte-efficiency byte-gzip dbw errors-expired-ssl errors-infinite-loop metrics-tricky-tti metrics-tricky-tti-late-fcp perf-preload redirects-client-paint-server redirects-history-push-state redirects-multiple-server redirects-single-server redirects-single-client redirects-scripts screenshot
       working-directory: ${{ github.workspace }}/lighthouse
