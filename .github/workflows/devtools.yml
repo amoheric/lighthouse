@@ -167,7 +167,7 @@ jobs:
       #   redirects-client-paint-server redirects-multiple-server redirects-single-server redirects-single-client
       # Disabled because Indexedb is not cleared and the runtime warning persists
       #   pwa-svgomg
-      # Disabled because these tests configure settings that DevTools cannot control.
+      # Disabled because these tests use a config that cannot be fully configured in DevTools.
       #   metrics-tricky-tti metrics-tricky-tti-late-fcp screenshot
       # Disabled because ?
       #   byte-efficiency byte-gzip perf-preload
