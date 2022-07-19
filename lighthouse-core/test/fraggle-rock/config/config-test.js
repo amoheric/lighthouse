@@ -4,15 +4,15 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
-import {jest} from '@jest/globals';
+import jestMock from 'jest-mock';
 
-import BaseAudit from '../../../audits/audit.js';
-import constants from '../../../config/constants.js';
+import {Audit as BaseAudit} from '../../../audits/audit.js';
+import * as constants from '../../../config/constants.js';
 import BaseGatherer from '../../../fraggle-rock/gather/base-gatherer.js';
 import {initializeConfig, getConfigDisplayString} from '../../../fraggle-rock/config/config.js';
 import {LH_ROOT} from '../../../../root.js';
 import format from '../../../../shared/localization/format.js';
-import defaultConfig from '../../../fraggle-rock/config/default-config.js';
+import defaultConfig from '../../../config/default-config.js';
 
 const {nonSimulatedPassConfigOverrides} = constants;
 
@@ -82,14 +82,14 @@ describe('Fraggle Rock Config', () => {
 
   it('should throw on invalid artifact definitions', () => {
     const nonFRGatherer = new BaseGatherer();
-    nonFRGatherer.getArtifact = jest.fn();
+    nonFRGatherer.getArtifact = jestMock.fn();
     const configJson = {artifacts: [{id: 'LegacyGather', gatherer: {instance: nonFRGatherer}}]};
     expect(initializeConfig(gatherMode, configJson)).rejects.toThrow(/FRGatherer gatherer/);
   });
 
   it('should filter configuration by gatherMode', async () => {
     const timespanGatherer = new BaseGatherer();
-    timespanGatherer.getArtifact = jest.fn();
+    timespanGatherer.getArtifact = jestMock.fn();
     timespanGatherer.meta = {supportedModes: ['timespan']};
 
     const configJson = {
@@ -146,11 +146,11 @@ describe('Fraggle Rock Config', () => {
     beforeEach(() => {
       const dependencySymbol = Symbol('dependency');
       dependencyGatherer = new BaseGatherer();
-      dependencyGatherer.getArtifact = jest.fn();
+      dependencyGatherer.getArtifact = jestMock.fn();
       dependencyGatherer.meta = {symbol: dependencySymbol, supportedModes: ['snapshot']};
       // @ts-expect-error - we satisfy the interface on the next line
       dependentGatherer = new BaseGatherer();
-      dependentGatherer.getArtifact = jest.fn();
+      dependentGatherer.getArtifact = jestMock.fn();
       dependentGatherer.meta = {
         supportedModes: ['snapshot'],
         dependencies: {ImageElements: dependencySymbol},
@@ -336,7 +336,7 @@ describe('Fraggle Rock Config', () => {
 
     beforeEach(() => {
       const gatherer = new BaseGatherer();
-      gatherer.getArtifact = jest.fn();
+      gatherer.getArtifact = jestMock.fn();
       gatherer.meta = {supportedModes: ['navigation']};
 
       class ExtraAudit extends BaseAudit {
@@ -477,8 +477,15 @@ describe('Fraggle Rock Config', () => {
       artifacts: [{id: 'artifact', gatherer: {instance: new BaseGatherer()}}],
     };
 
-    expect(initializeConfig('navigation', extensionConfig))
-      .rejects.toThrow(/did not support any gather modes/);
+    // https://github.com/facebook/jest/issues/11438
+    // expect(initializeConfig(extensionConfig, {gatherMode: 'navigation'}))
+    //   .rejects.toThrow(/did not support any gather modes/);
+    try {
+      await initializeConfig('navigation', extensionConfig);
+      throw new Error('did not throw');
+    } catch (err) {
+      expect(err.message).toMatch(/did not support any gather modes/);
+    }
   });
 });
 

@@ -27,8 +27,8 @@ const config = {
     // to complete.
     maxWaitForLoad: 180000,
   },
-  passes: [{
-    passName: 'defaultPass',
+  navigations: [{
+    id: 'default',
     // CI machines are pretty weak which lead to many more long tasks than normal.
     // Reduce our requirement for CPU quiet.
     cpuQuietThresholdMs: 500,
@@ -45,24 +45,27 @@ const expectations = {
     finalUrl: 'http://localhost:10200/oopif-requests.html',
     audits: {
       'network-requests': {
+        // Multiple session attach handling fixed in M105
+        // https://chromiumdash.appspot.com/commit/f42337f1d623ec913397610ccf01b5526e9e919d
+        _minChromiumVersion: '105',
         details: {
           items: {
             // We want to make sure we are finding the iframe's requests (paulirish.com) *AND*
             // the iframe's iframe's iframe's requests (youtube.com/doubleclick/etc).
             _includes: [
-              {url: 'http://localhost:10200/oopif-requests.html', finished: true, statusCode: 200, resourceType: 'Document'},
+              {url: 'http://localhost:10200/oopif-requests.html', finished: true, statusCode: 200, resourceType: 'Document', experimentalFromMainFrame: true},
 
               // Paulirish iframe and subresource
-              {url: 'https://www.paulirish.com/2012/why-moving-elements-with-translate-is-better-than-posabs-topleft/', finished: true, statusCode: 200, resourceType: 'Document'},
-              {url: 'https://www.paulirish.com/avatar150.jpg', finished: true, statusCode: 200, resourceType: 'Image'},
-              {url: 'https://www.googletagmanager.com/gtag/js?id=G-PGXNGYWP8E', finished: true, statusCode: 200, resourceType: 'Script'},
-              {url: /^https:\/\/fonts\.googleapis\.com\/css/, finished: true, statusCode: 200, resourceType: 'Stylesheet'},
+              {url: 'https://www.paulirish.com/2012/why-moving-elements-with-translate-is-better-than-posabs-topleft/', finished: true, statusCode: 200, resourceType: 'Document', experimentalFromMainFrame: undefined},
+              {url: 'https://www.paulirish.com/avatar150.jpg', finished: true, statusCode: 200, resourceType: 'Image', experimentalFromMainFrame: undefined},
+              {url: 'https://www.googletagmanager.com/gtag/js?id=G-PGXNGYWP8E', finished: true, statusCode: 200, resourceType: 'Script', experimentalFromMainFrame: undefined},
+              {url: /^https:\/\/fonts\.googleapis\.com\/css/, finished: true, statusCode: 200, resourceType: 'Stylesheet', experimentalFromMainFrame: undefined},
 
               // Youtube iframe (OOPIF) and some subresources
               // FYI: Youtube has a ServiceWorker which sometimes cancels the document request. As a result, there will sometimes be multiple requests for this file.
               {url: 'https://www.youtube.com/embed/NZelrwd_iRs', finished: true, statusCode: 200, resourceType: 'Document'},
               {url: /^https:\/\/www\.youtube\.com\/.*?player.*?css/, finished: true, statusCode: 200, resourceType: 'Stylesheet'},
-              {url: /^https:\/\/www\.youtube\.com\/.*?\/embed.js/, finished: true, statusCode: 200, resourceType: 'Script'},
+              {url: /^https:\/\/www\.youtube\.com\/.*?\/embed.js/, finished: true, statusCode: 200, resourceType: 'Script', experimentalFromMainFrame: undefined},
 
               // Disqus iframe (OOPIF)
               {url: /^https:\/\/disqus\.com\/embed\/comments\//, finished: true, statusCode: 200, resourceType: 'Document'},

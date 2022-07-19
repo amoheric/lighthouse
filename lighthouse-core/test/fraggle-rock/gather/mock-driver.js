@@ -4,23 +4,23 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
-
 /**
  * @fileoverview Mock fraggle rock driver for testing.
  */
 
-import {jest} from '@jest/globals';
+import jestMock from 'jest-mock';
+import * as td from 'testdouble';
 
 import {
   createMockOnFn,
   createMockOnceFn,
   createMockSendCommandFn,
 } from '../../gather/mock-commands.js';
-import constants from '../../../config/constants.js';
+import * as constants from '../../../config/constants.js';
 import {fnAny} from '../../test-utils.js';
 import {LH_ROOT} from '../../../../root.js';
 
-/** @typedef {import('../../../fraggle-rock/gather/driver.js')} Driver */
+/** @typedef {import('../../../fraggle-rock/gather/driver.js').Driver} Driver */
 /** @typedef {import('../../../gather/driver/execution-context.js')} ExecutionContext */
 
 function createMockSession() {
@@ -159,7 +159,7 @@ function createMockDriver() {
     _page: page,
     _executionContext: context,
     _session: session,
-    url: jest.fn(() => page.url()),
+    url: jestMock.fn(() => page.url()),
     defaultSession: session,
     connect: fnAny(),
     disconnect: fnAny(),
@@ -174,33 +174,31 @@ function createMockDriver() {
   };
 }
 
-function mockRunnerModule() {
-  const runnerModule = {
-    getAuditList: fnAny().mockReturnValue([]),
-    getGathererList: fnAny().mockReturnValue([]),
-    audit: fnAny(),
-    gather: fnAny(),
-    reset,
-  };
-
-  jest.mock(`${LH_ROOT}/lighthouse-core/runner.js`, () => runnerModule);
-
-  function reset() {
-    runnerModule.getGathererList.mockReturnValue([]);
-    runnerModule.getAuditList.mockReturnValue([]);
-    runnerModule.audit.mockReset();
-    runnerModule.gather.mockReset();
-  }
-
-  return runnerModule;
+const runnerMock = {
+  getAuditList: fnAny().mockReturnValue([]),
+  getGathererList: fnAny().mockReturnValue([]),
+  audit: fnAny(),
+  gather: fnAny(),
+  reset() {
+    runnerMock.getGathererList.mockReturnValue([]);
+    runnerMock.getAuditList.mockReturnValue([]);
+    runnerMock.audit.mockReset();
+    runnerMock.gather.mockReset();
+  },
+};
+async function mockRunnerModule() {
+  await td.replaceEsm(`${LH_ROOT}/lighthouse-core/runner.js`, {Runner: runnerMock});
+  return runnerMock;
 }
 
 /** @param {() => Driver} driverProvider */
 function mockDriverModule(driverProvider) {
-  // This must be a regular function becaues Driver is always invoked as a constructor.
-  // Arrow functions cannot be invoked with `new`.
-  return function() {
-    return driverProvider();
+  return {
+    // This must be a regular function becaues Driver is always invoked as a constructor.
+    // Arrow functions cannot be invoked with `new`.
+    Driver: function() {
+      return driverProvider();
+    },
   };
 }
 
@@ -251,7 +249,7 @@ function createMockContext() {
   };
 }
 
-function mockDriverSubmodules() {
+async function mockDriverSubmodules() {
   const navigationMock = {gotoURL: fnAny()};
   const prepareMock = {
     prepareThrottlingAndNetwork: fnAny(),
@@ -286,15 +284,17 @@ function mockDriverSubmodules() {
    * @return {(...args: any[]) => void}
    */
   const get = (target, name) => {
+    // @ts-expect-error: hack? What is going on here? Should we just remove the proxy stuff?
+    if (name === 'then') return target;
     if (!target[name]) throw new Error(`Target does not have property "${name}"`);
     return (...args) => target[name](...args);
   };
 
-  jest.mock('../../../gather/driver/navigation.js', () => new Proxy(navigationMock, {get}));
-  jest.mock('../../../gather/driver/prepare.js', () => new Proxy(prepareMock, {get}));
-  jest.mock('../../../gather/driver/storage.js', () => new Proxy(storageMock, {get}));
-  jest.mock('../../../gather/driver/network.js', () => new Proxy(networkMock, {get}));
-  jest.mock('../../../lib/emulation.js', () => new Proxy(emulationMock, {get}));
+  await td.replaceEsm('../../../gather/driver/navigation.js', new Proxy(navigationMock, {get}));
+  await td.replaceEsm('../../../gather/driver/prepare.js', new Proxy(prepareMock, {get}));
+  await td.replaceEsm('../../../gather/driver/storage.js', new Proxy(storageMock, {get}));
+  await td.replaceEsm('../../../gather/driver/network.js', new Proxy(networkMock, {get}));
+  await td.replaceEsm('../../../lib/emulation.js', new Proxy(emulationMock, {get}));
 
   reset();
 

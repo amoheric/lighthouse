@@ -5,9 +5,14 @@
  */
 'use strict';
 
-const EventEmitter = require('events').EventEmitter;
-const log = require('lighthouse-logger');
-const ProtocolSession = require('../../fraggle-rock/gather/session.js');
+/**
+ * @fileoverview This class tracks multiple targets (the page itself and its OOPIFs) and allows consumers to
+ * listen for protocol events before each target is resumed.
+ */
+
+import EventEmitter from 'events';
+import log from 'lighthouse-logger';
+import {ProtocolSession} from '../../fraggle-rock/gather/session.js';
 
 /**
  * @typedef {{
@@ -19,8 +24,8 @@ const ProtocolSession = require('../../fraggle-rock/gather/session.js');
  */
 
 // Add protocol event types to EventEmitter.
-/** @typedef {{'protocolevent': [LH.Protocol.RawEventMessage]}} ProtocolEventRecord */
-/** @typedef {new () => LH.Protocol.StrictEventEmitter<ProtocolEventRecord>} ProtocolEventMessageEmitter */
+/** @typedef {{'protocolevent': [LH.Protocol.RawEventMessage]}} ProtocolEventMap */
+/** @typedef {LH.Protocol.StrictEventEmitterClass<ProtocolEventMap>} ProtocolEventMessageEmitter */
 const ProtocolEventEmitter = /** @type {ProtocolEventMessageEmitter} */ (EventEmitter);
 
 /**
@@ -199,4 +204,4 @@ class TargetManager extends ProtocolEventEmitter {
   }
 }
 
-module.exports = TargetManager;
+export {TargetManager};
