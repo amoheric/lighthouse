@@ -16,8 +16,8 @@ import {getAuditsBreakdown, createTestState} from './pptr-test-utils.js';
 import {readJson} from '../../test-utils.js';
 
 const execFileAsync = promisify(execFile);
-const desktopReplayJson = readJson(`${LH_ROOT}/lighthouse-core/test/fixtures/fraggle-rock/replay/desktop-test-flow.json`);
-const mobileReplayJson = readJson(`${LH_ROOT}/lighthouse-core/test/fixtures/fraggle-rock/replay/mobile-test-flow.json`);
+const desktopReplayJson = readJson('lighthouse-core/test/fixtures/fraggle-rock/replay/desktop-test-flow.json');
+const mobileReplayJson = readJson('lighthouse-core/test/fixtures/fraggle-rock/replay/mobile-test-flow.json');
 const FLOW_JSON_REGEX = /window\.__LIGHTHOUSE_FLOW_JSON__ = (.*);<\/script>/;
 
 describe('Running the stringified output script', function() {
