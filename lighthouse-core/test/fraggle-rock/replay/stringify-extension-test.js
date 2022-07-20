@@ -23,8 +23,9 @@ describe('LighthouseStringifyExtension', function() {
   // eslint-disable-next-line no-invalid-this
   this.timeout(60_000);
 
+  // Flow JSON specifies port 10200 so we have to use that for the server.
   const state = createTestState();
-  state.installServerHooks();
+  state.installServerHooks(10200);
 
   const tmpDir = `${LH_ROOT}/.tmp/replay`;
   let testTmpDir = '';
