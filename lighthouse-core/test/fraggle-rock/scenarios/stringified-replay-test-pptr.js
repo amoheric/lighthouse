@@ -16,7 +16,8 @@ import {getAuditsBreakdown, createTestState} from './pptr-test-utils.js';
 import {readJson} from '../../test-utils.js';
 
 const execFileAsync = promisify(execFile);
-const replayFlowJson = readJson(`${LH_ROOT}/lighthouse-core/test/fixtures/fraggle-rock/replay/test-flow.json`);
+const desktopReplayJson = readJson(`${LH_ROOT}/lighthouse-core/test/fixtures/fraggle-rock/replay/desktop-test-flow.json`);
+const mobileReplayJson = readJson(`${LH_ROOT}/lighthouse-core/test/fixtures/fraggle-rock/replay/mobile-test-flow.json`);
 const FLOW_JSON_REGEX = /window\.__LIGHTHOUSE_FLOW_JSON__ = (.*);<\/script>/;
 
 describe('Running the stringified output script', function() {
@@ -46,8 +47,8 @@ describe('Running the stringified output script', function() {
     await fs.rm(tmpDir, {recursive: true, force: true});
   });
 
-  it('crates a valid desktop report', async () => {
-    const scriptContents = await stringify(replayFlowJson, {
+  it('generates a valid desktop flow report', async () => {
+    const scriptContents = await stringify(desktopReplayJson, {
       extension: new LighthouseStringifyExtension(),
     });
 
@@ -66,7 +67,7 @@ describe('Running the stringified output script', function() {
 
     /** @type {LH.FlowResult} */
     const flowResult = JSON.parse(flowResultJson);
-    expect(flowResult.name).toEqual(replayFlowJson.title);
+    expect(flowResult.name).toEqual(desktopReplayJson.title);
     expect(flowResult.steps.map(step => step.lhr.gatherMode)).toEqual([
       'navigation',
       'timespan',
@@ -76,6 +77,46 @@ describe('Running the stringified output script', function() {
 
     for (const {lhr} of flowResult.steps) {
       expect(lhr.configSettings.formFactor).toEqual('desktop');
+      expect(lhr.configSettings.screenEmulation.disabled).toBeTruthy();
+
+      const {auditResults, erroredAudits} = getAuditsBreakdown(lhr);
+      expect(auditResults.length).toBeGreaterThanOrEqual(10);
+
+      // TODO: INP breakdown diagnostic audit is broken because of old Chrome
+      expect(erroredAudits.length).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('generates a valid mobile flow report', async () => {
+    const scriptContents = await stringify(mobileReplayJson, {
+      extension: new LighthouseStringifyExtension(),
+    });
+
+    expect(scriptContents).toMatchSnapshot();
+    await fs.writeFile(scriptPath, scriptContents);
+
+    const {stdout, stderr} = await execFileAsync('node', [scriptPath], {timeout: 50_000});
+
+    // Ensure script didn't quietly report an issue.
+    expect(stdout).toEqual('');
+    expect(stderr).toEqual('');
+
+    const reportHtml = await fs.readFile(`${testTmpDir}/flow.report.html`, 'utf-8');
+    const flowResultJson = FLOW_JSON_REGEX.exec(reportHtml)?.[1];
+    if (!flowResultJson) throw new Error('Could not find flow json');
+
+    /** @type {LH.FlowResult} */
+    const flowResult = JSON.parse(flowResultJson);
+    expect(flowResult.name).toEqual(mobileReplayJson.title);
+    expect(flowResult.steps.map(step => step.lhr.gatherMode)).toEqual([
+      'navigation',
+      'timespan',
+      'navigation',
+      'timespan',
+    ]);
+
+    for (const {lhr} of flowResult.steps) {
+      expect(lhr.configSettings.formFactor).toEqual('mobile');
       expect(lhr.configSettings.screenEmulation.disabled).toBeTruthy();
 
       const {auditResults, erroredAudits} = getAuditsBreakdown(lhr);
