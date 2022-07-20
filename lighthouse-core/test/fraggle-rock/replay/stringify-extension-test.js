@@ -21,7 +21,7 @@ const FLOW_JSON_REGEX = /window\.__LIGHTHOUSE_FLOW_JSON__ = (.*);<\/script>/;
 
 describe('LighthouseStringifyExtension', function() {
   // eslint-disable-next-line no-invalid-this
-  this.timeout(90_000);
+  this.timeout(60_000);
 
   const state = createTestState();
   state.installServerHooks();
@@ -53,7 +53,11 @@ describe('LighthouseStringifyExtension', function() {
     expect(scriptContents).toMatchSnapshot();
     await fs.writeFile(scriptPath, scriptContents);
 
-    await execFileAsync('node', [scriptPath]);
+    const {stdout, stderr} = await execFileAsync('node', [scriptPath], {timeout: 50_000});
+
+    // Ensure script didn't quietly report an issue.
+    expect(stdout).toMatchInlineSnapshot(`""`);
+    expect(stderr).toMatchInlineSnapshot(`""`);
 
     const reportHtml = await fs.readFile(`${testTmpDir}/flow.report.html`, 'utf-8');
     const flowResultJson = FLOW_JSON_REGEX.exec(reportHtml)?.[1];
