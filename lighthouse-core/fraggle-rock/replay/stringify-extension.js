@@ -19,7 +19,7 @@ function isNavigationStep(step) {
 }
 
 class LighthouseStringifyExtension extends PuppeteerStringifyExtension {
-  isTimespanRunning = false;
+  #isProcessingTimespan = false;
 
   /**
    * @param {Parameters<PuppeteerStringifyExtension['beforeAllSteps']>} args
@@ -70,14 +70,14 @@ class LighthouseStringifyExtension extends PuppeteerStringifyExtension {
     const isNavigation = isNavigationStep(step);
 
     if (isNavigation) {
-      if (this.isTimespanRunning) {
+      if (this.#isProcessingTimespan) {
         out.appendLine(`await lhFlow.endTimespan();`);
-        this.isTimespanRunning = false;
+        this.#isProcessingTimespan = false;
       }
       out.appendLine(`await lhFlow.startNavigation();`);
-    } else if (!this.isTimespanRunning) {
+    } else if (!this.#isProcessingTimespan) {
       out.appendLine(`await lhFlow.startTimespan();`);
-      this.isTimespanRunning = true;
+      this.#isProcessingTimespan = true;
     }
 
     await super.stringifyStep(...args);
@@ -92,7 +92,7 @@ class LighthouseStringifyExtension extends PuppeteerStringifyExtension {
    */
   async afterAllSteps(...args) {
     const [out] = args;
-    if (this.isTimespanRunning) {
+    if (this.#isProcessingTimespan) {
       out.appendLine(`await lhFlow.endTimespan();`);
     }
     out.appendLine(`const lhFlowReport = await lhFlow.generateReport();`);
