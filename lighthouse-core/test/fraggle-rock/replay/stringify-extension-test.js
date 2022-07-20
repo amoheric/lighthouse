@@ -57,8 +57,8 @@ describe('LighthouseStringifyExtension', function() {
     const {stdout, stderr} = await execFileAsync('node', [scriptPath], {timeout: 50_000});
 
     // Ensure script didn't quietly report an issue.
-    expect(stdout).toMatchInlineSnapshot(`""`);
-    expect(stderr).toMatchInlineSnapshot(`""`);
+    expect(stdout).toEqual('');
+    expect(stderr).toEqual('');
 
     const reportHtml = await fs.readFile(`${testTmpDir}/flow.report.html`, 'utf-8');
     const flowResultJson = FLOW_JSON_REGEX.exec(reportHtml)?.[1];
@@ -66,8 +66,13 @@ describe('LighthouseStringifyExtension', function() {
 
     /** @type {LH.FlowResult} */
     const flowResult = JSON.parse(flowResultJson);
-    expect(flowResult.steps).toHaveLength(4);
     expect(flowResult.name).toEqual(replayFlowJson.title);
+    expect(flowResult.steps.map(step => step.lhr.gatherMode)).toEqual([
+      'navigation',
+      'timespan',
+      'navigation',
+      'timespan',
+    ]);
 
     for (const {lhr} of flowResult.steps) {
       expect(lhr.configSettings.formFactor).toEqual('desktop');
@@ -75,6 +80,7 @@ describe('LighthouseStringifyExtension', function() {
 
       const {auditResults, erroredAudits} = getAuditsBreakdown(lhr);
       expect(auditResults.length).toBeGreaterThanOrEqual(10);
+
       // TODO: INP breakdown diagnostic audit is broken because of old Chrome
       expect(erroredAudits.length).toBeLessThanOrEqual(1);
     }
