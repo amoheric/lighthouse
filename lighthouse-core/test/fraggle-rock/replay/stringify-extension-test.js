@@ -19,70 +19,72 @@ const execFileAsync = promisify(execFile);
 const replayFlowJson = readJson(`${LH_ROOT}/lighthouse-core/test/fixtures/fraggle-rock/replay/test-flow.json`);
 const FLOW_JSON_REGEX = /window\.__LIGHTHOUSE_FLOW_JSON__ = (.*);<\/script>/;
 
-describe('LighthouseStringifyExtension', function() {
-  // eslint-disable-next-line no-invalid-this
-  this.timeout(60_000);
+describe('LighthouseStringifyExtension', () => {
+  describe('running the output script', function() {
+    // eslint-disable-next-line no-invalid-this
+    this.timeout(60_000);
 
-  // Flow JSON specifies port 10200 so we have to use that for the server.
-  const state = createTestState();
-  state.installServerHooks(10200);
+    // Flow JSON specifies port 10200 so we have to use that for the server.
+    const state = createTestState();
+    state.installServerHooks(10200);
 
-  const tmpDir = `${LH_ROOT}/.tmp/replay`;
-  let testTmpDir = '';
-  let scriptPath = '';
+    const tmpDir = `${LH_ROOT}/.tmp/replay`;
+    let testTmpDir = '';
+    let scriptPath = '';
 
-  before(async () => {
-    await fs.mkdir(tmpDir, {recursive: true});
-    // Stringified exports are CJS
-    fs.writeFile(`${tmpDir}/package.json`, '{"type": "commonjs"}');
-  });
-
-  beforeEach(async () => {
-    testTmpDir = await fs.mkdtemp(`${tmpDir}/replay-`);
-    scriptPath = `${testTmpDir}/stringified.js`;
-  });
-
-  after(async () => {
-    await fs.rm(tmpDir, {recursive: true, force: true});
-  });
-
-  it('crates a valid desktop script', async () => {
-    const scriptContents = await stringify(replayFlowJson, {
-      extension: new LighthouseStringifyExtension(),
+    before(async () => {
+      await fs.mkdir(tmpDir, {recursive: true});
+      // Stringified exports are CJS
+      fs.writeFile(`${tmpDir}/package.json`, '{"type": "commonjs"}');
     });
 
-    expect(scriptContents).toMatchSnapshot();
-    await fs.writeFile(scriptPath, scriptContents);
+    beforeEach(async () => {
+      testTmpDir = await fs.mkdtemp(`${tmpDir}/replay-`);
+      scriptPath = `${testTmpDir}/stringified.js`;
+    });
 
-    const {stdout, stderr} = await execFileAsync('node', [scriptPath], {timeout: 50_000});
+    after(async () => {
+      await fs.rm(tmpDir, {recursive: true, force: true});
+    });
 
-    // Ensure script didn't quietly report an issue.
-    expect(stdout).toEqual('');
-    expect(stderr).toEqual('');
+    it('crates a valid desktop report', async () => {
+      const scriptContents = await stringify(replayFlowJson, {
+        extension: new LighthouseStringifyExtension(),
+      });
 
-    const reportHtml = await fs.readFile(`${testTmpDir}/flow.report.html`, 'utf-8');
-    const flowResultJson = FLOW_JSON_REGEX.exec(reportHtml)?.[1];
-    if (!flowResultJson) throw new Error('Could not find flow json');
+      expect(scriptContents).toMatchSnapshot();
+      await fs.writeFile(scriptPath, scriptContents);
 
-    /** @type {LH.FlowResult} */
-    const flowResult = JSON.parse(flowResultJson);
-    expect(flowResult.name).toEqual(replayFlowJson.title);
-    expect(flowResult.steps.map(step => step.lhr.gatherMode)).toEqual([
-      'navigation',
-      'timespan',
-      'navigation',
-      'timespan',
-    ]);
+      const {stdout, stderr} = await execFileAsync('node', [scriptPath], {timeout: 50_000});
 
-    for (const {lhr} of flowResult.steps) {
-      expect(lhr.configSettings.formFactor).toEqual('desktop');
-      expect(lhr.configSettings.screenEmulation.disabled).toBeTruthy();
+      // Ensure script didn't quietly report an issue.
+      expect(stdout).toEqual('');
+      expect(stderr).toEqual('');
 
-      const {auditResults, erroredAudits} = getAuditsBreakdown(lhr);
-      expect(auditResults.length).toBeGreaterThanOrEqual(10);
+      const reportHtml = await fs.readFile(`${testTmpDir}/flow.report.html`, 'utf-8');
+      const flowResultJson = FLOW_JSON_REGEX.exec(reportHtml)?.[1];
+      if (!flowResultJson) throw new Error('Could not find flow json');
 
-      // TODO: INP breakdown diagnostic audit is broken because of old Chrome
-      expect(erroredAudits.length).toBeLessThanOrEqual(1);
-    }
+      /** @type {LH.FlowResult} */
+      const flowResult = JSON.parse(flowResultJson);
+      expect(flowResult.name).toEqual(replayFlowJson.title);
+      expect(flowResult.steps.map(step => step.lhr.gatherMode)).toEqual([
+        'navigation',
+        'timespan',
+        'navigation',
+        'timespan',
+      ]);
+
+      for (const {lhr} of flowResult.steps) {
+        expect(lhr.configSettings.formFactor).toEqual('desktop');
+        expect(lhr.configSettings.screenEmulation.disabled).toBeTruthy();
+
+        const {auditResults, erroredAudits} = getAuditsBreakdown(lhr);
+        expect(auditResults.length).toBeGreaterThanOrEqual(10);
+
+        // TODO: INP breakdown diagnostic audit is broken because of old Chrome
+        expect(erroredAudits.length).toBeLessThanOrEqual(1);
+      }
+    });
   });
 });
