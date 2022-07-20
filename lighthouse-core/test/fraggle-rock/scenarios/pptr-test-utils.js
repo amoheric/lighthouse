@@ -36,7 +36,7 @@ function createTestState() {
     serverBaseUrl: '',
     secondaryServerBaseUrl: '',
 
-    installSetupAndTeardownHooks() {
+    installServerHooks() {
       before(async () => {
         this.server = new Server();
         this.secondaryServer = new Server();
@@ -44,6 +44,18 @@ function createTestState() {
         await this.secondaryServer.listen(0, '127.0.0.1');
         this.serverBaseUrl = `http://localhost:${this.server.getPort()}`;
         this.secondaryServerBaseUrl = `http://localhost:${this.secondaryServer.getPort()}`;
+      });
+
+      after(async () => {
+        await this.server.close();
+        await this.secondaryServer.close();
+      });
+    },
+
+    installSetupAndTeardownHooks() {
+      this.installServerHooks();
+
+      before(async () => {
         this.browser = await puppeteer.launch({
           headless: true,
           executablePath: getChromePath(),
@@ -61,8 +73,6 @@ function createTestState() {
 
       after(async () => {
         await this.browser.close();
-        await this.server.close();
-        await this.secondaryServer.close();
       });
     },
   };

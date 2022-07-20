@@ -24,7 +24,7 @@ describe('LighthouseStringifyExtension', function() {
   this.timeout(50_000);
 
   const state = createTestState();
-  state.installSetupAndTeardownHooks();
+  state.installServerHooks();
 
   const tmpDir = `${LH_ROOT}/.tmp/replay`;
   let testTmpDir = '';
@@ -42,7 +42,7 @@ describe('LighthouseStringifyExtension', function() {
   });
 
   after(async () => {
-    // await fs.rm(tmpDir, {recursive: true, force: true});
+    await fs.rm(tmpDir, {recursive: true, force: true});
   });
 
   it('crates a valid desktop script', async () => {
