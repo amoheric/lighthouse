@@ -311,6 +311,7 @@ function pruneExpectations(localConsole, lhr, expected, reportOptions) {
     delete obj._minChromiumVersion;
     delete obj._maxChromiumVersion;
     delete obj._runner;
+    delete obj._excludeRunner;
   }
 
   const cloned = cloneDeep(expected);
