@@ -2,8 +2,6 @@
 
 exports[`LighthouseStringifyExtension crates a valid desktop script 1`] = `
 "const fs = require('fs');
-const lhApi = require('lighthouse/lighthouse-core/fraggle-rock/api.js');
-const config = require('lighthouse/lighthouse-core/config/desktop-config.js');
 const puppeteer = require('puppeteer'); // v13.0.0 or later
 
 (async () => {
@@ -12,51 +10,54 @@ const puppeteer = require('puppeteer'); // v13.0.0 or later
   const timeout = 5000;
   page.setDefaultTimeout(timeout);
 
-  const lhFlow = await lhApi.startFlow(page, {name: 'web.dev', config, configContext: {\\"settingsOverrides\\":{\\"screenEmulation\\":{\\"disabled\\":true}}}});
+  const configContext = {\\"settingsOverrides\\":{\\"screenEmulation\\":{\\"disabled\\":true}}}
+  const config = (await import('lighthouse/lighthouse-core/config/desktop-config.js')).default;
+  const lhApi = await import('lighthouse/lighthouse-core/fraggle-rock/api.js');
+  const lhFlow = await lhApi.startFlow(page, {name: \\"Test Flow\\", config, configContext});
   {
     const targetPage = page;
-    await targetPage.setViewport({\\"width\\":990,\\"height\\":900})
+    await targetPage.setViewport({\\"width\\":757,\\"height\\":988})
   }
   await lhFlow.startNavigation();
   {
     const targetPage = page;
     const promises = [];
     promises.push(targetPage.waitForNavigation());
-    await targetPage.goto(\\"https://web.dev/\\");
+    await targetPage.goto(\\"http://localhost:10200/flow/index.html\\");
     await Promise.all(promises);
   }
   await lhFlow.endNavigation();
   await lhFlow.startTimespan();
   {
     const targetPage = page;
-    const element = await waitForSelectors([[\\"#sub-newsletter\\"]], targetPage, { timeout, visible: true });
+    const element = await waitForSelectors([[\\"aria/Add item\\"],[\\"#add-item\\"]], targetPage, { timeout, visible: true });
     await scrollIntoViewIfNeeded(element, timeout);
     await element.click({
       offset: {
-        x: 9,
-        y: 9.671875,
+        x: 61,
+        y: 13.5625,
       },
     });
   }
   {
     const targetPage = page;
-    const element = await waitForSelectors([[\\"#sub-pii-spii\\"]], targetPage, { timeout, visible: true });
+    const element = await waitForSelectors([[\\"aria/Add item\\"],[\\"#add-item\\"]], targetPage, { timeout, visible: true });
     await scrollIntoViewIfNeeded(element, timeout);
     await element.click({
       offset: {
-        x: 8,
-        y: 13.3203125,
+        x: 42,
+        y: 4.125,
       },
     });
   }
   {
     const targetPage = page;
-    const element = await waitForSelectors([[\\"aria/First Name\\"],[\\"#sub-firstname\\"]], targetPage, { timeout, visible: true });
+    const element = await waitForSelectors([[\\"aria/Add item\\"],[\\"#add-item\\"]], targetPage, { timeout, visible: true });
     await scrollIntoViewIfNeeded(element, timeout);
     await element.click({
       offset: {
-        x: 182.859375,
-        y: 36.25,
+        x: 50,
+        y: 8.40625,
       },
     });
   }
@@ -66,17 +67,30 @@ const puppeteer = require('puppeteer'); // v13.0.0 or later
     const targetPage = page;
     const promises = [];
     promises.push(targetPage.waitForNavigation());
-    const element = await waitForSelectors([[\\"#main > div > div:nth-child(5) > div > div.headline.all-center.flow > div > a\\"]], targetPage, { timeout, visible: true });
+    const element = await waitForSelectors([[\\"aria/Link to new page!\\"],[\\"#link\\"]], targetPage, { timeout, visible: true });
     await scrollIntoViewIfNeeded(element, timeout);
     await element.click({
       offset: {
-        x: 25.703125,
-        y: 15.3515625,
+        x: 53.390625,
+        y: 3.6875,
       },
     });
     await Promise.all(promises);
   }
   await lhFlow.endNavigation();
+  await lhFlow.startTimespan();
+  {
+    const targetPage = page;
+    const element = await waitForSelectors([[\\"aria/Hidden content here:\\"],[\\"#content > summary\\"]], targetPage, { timeout, visible: true });
+    await scrollIntoViewIfNeeded(element, timeout);
+    await element.click({
+      offset: {
+        x: 6,
+        y: 10.5625,
+      },
+    });
+  }
+  await lhFlow.endTimespan();
   const lhFlowReport = await lhFlow.generateReport();
   fs.writeFileSync(__dirname + '/flow.report.html', lhFlowReport)
 

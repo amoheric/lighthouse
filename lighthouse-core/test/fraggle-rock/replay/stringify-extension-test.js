@@ -8,26 +8,32 @@ import {promises as fs} from 'fs';
 import {promisify} from 'util';
 import {execFile} from 'child_process';
 
-import {jest} from '@jest/globals';
 import {stringify} from '@puppeteer/replay';
 
-import {LH_ROOT, readJson} from '../../../../root.js';
+import {LH_ROOT} from '../../../../root.js';
 import LighthouseStringifyExtension from '../../../fraggle-rock/replay/stringify-extension.js';
-import {getAuditsBreakdown} from '../scenarios/pptr-test-utils.js';
+import {getAuditsBreakdown, createTestState} from '../scenarios/pptr-test-utils.js';
+import {readJson} from '../../test-utils.js';
 
-const replayFlowJson = readJson(`${LH_ROOT}/lighthouse-core/test/fixtures/fraggle-rock/replay/web.dev.json`);
 const execFileAsync = promisify(execFile);
+const replayFlowJson = readJson(`${LH_ROOT}/lighthouse-core/test/fixtures/fraggle-rock/replay/test-flow.json`);
 const FLOW_JSON_REGEX = /window\.__LIGHTHOUSE_FLOW_JSON__ = (.*);<\/script>/;
 
-jest.setTimeout(50_000);
+describe('LighthouseStringifyExtension', function() {
+  // eslint-disable-next-line no-invalid-this
+  this.timeout(50_000);
 
-describe('LighthouseStringifyExtension', () => {
+  const state = createTestState();
+  state.installSetupAndTeardownHooks();
+
   const tmpDir = `${LH_ROOT}/.tmp/replay`;
   let testTmpDir = '';
   let scriptPath = '';
 
-  beforeAll(async () => {
+  before(async () => {
     await fs.mkdir(tmpDir, {recursive: true});
+    // Stringified exports are CJS
+    fs.writeFile(`${tmpDir}/package.json`, '{"type": "commonjs"}');
   });
 
   beforeEach(async () => {
@@ -35,8 +41,8 @@ describe('LighthouseStringifyExtension', () => {
     scriptPath = `${testTmpDir}/stringified.js`;
   });
 
-  afterAll(async () => {
-    await fs.rm(tmpDir, {recursive: true, force: true});
+  after(async () => {
+    // await fs.rm(tmpDir, {recursive: true, force: true});
   });
 
   it('crates a valid desktop script', async () => {
@@ -55,7 +61,7 @@ describe('LighthouseStringifyExtension', () => {
 
     /** @type {LH.FlowResult} */
     const flowResult = JSON.parse(flowResultJson);
-    expect(flowResult.steps).toHaveLength(3);
+    expect(flowResult.steps).toHaveLength(4);
     expect(flowResult.name).toEqual(replayFlowJson.title);
 
     for (const {lhr} of flowResult.steps) {

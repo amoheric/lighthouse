@@ -5,8 +5,18 @@
  */
 'use strict';
 
-const {isNavigationStep} = require('./replay-helpers.js');
-const {PuppeteerStringifyExtension} = require('@puppeteer/replay');
+import {PuppeteerStringifyExtension} from '@puppeteer/replay';
+
+/**
+ * @param {import('@puppeteer/replay').Schema.Step} step
+ * @return {boolean}
+ */
+function isNavigationStep(step) {
+  return Boolean(
+    step.type === 'navigate' ||
+    step.assertedEvents?.some(event => event.type === 'navigation')
+  );
+}
 
 class LighthouseStringifyExtension extends PuppeteerStringifyExtension {
   isTimespanRunning = false;
@@ -17,20 +27,11 @@ class LighthouseStringifyExtension extends PuppeteerStringifyExtension {
   async beforeAllSteps(...args) {
     const [out, flow] = args;
     out.appendLine(`const fs = require('fs');`);
-    out.appendLine(`const lhApi = require('lighthouse/lighthouse-core/fraggle-rock/api.js');`);
 
     let isMobile = true;
     for (const step of flow.steps) {
       if (step.type !== 'setViewport') continue;
       isMobile = step.isMobile;
-    }
-
-    if (isMobile) {
-      // eslint-disable-next-line max-len
-      out.appendLine(`const config = undefined;`);
-    } else {
-      // eslint-disable-next-line max-len
-      out.appendLine(`const config = require('lighthouse/lighthouse-core/config/desktop-config.js');`);
     }
 
     await super.beforeAllSteps(...args);
@@ -42,9 +43,17 @@ class LighthouseStringifyExtension extends PuppeteerStringifyExtension {
         },
       },
     };
+    out.appendLine(`const configContext = ${JSON.stringify(configContext)}`);
+    if (isMobile) {
+      out.appendLine(`const config = undefined;`);
+    } else {
+      // eslint-disable-next-line max-len
+      out.appendLine(`const config = (await import('lighthouse/lighthouse-core/config/desktop-config.js')).default;`);
+    }
 
+    out.appendLine(`const lhApi = await import('lighthouse/lighthouse-core/fraggle-rock/api.js');`);
     // eslint-disable-next-line max-len
-    out.appendLine(`const lhFlow = await lhApi.startFlow(page, {name: '${JSON.stringify(flow.title)}', config, configContext: ${JSON.stringify(configContext)}});`);
+    out.appendLine(`const lhFlow = await lhApi.startFlow(page, {name: ${JSON.stringify(flow.title)}, config, configContext});`);
   }
 
   /**
@@ -92,4 +101,4 @@ class LighthouseStringifyExtension extends PuppeteerStringifyExtension {
   }
 }
 
-module.exports = LighthouseStringifyExtension;
+export default LighthouseStringifyExtension;
