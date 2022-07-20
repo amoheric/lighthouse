@@ -21,7 +21,7 @@ const FLOW_JSON_REGEX = /window\.__LIGHTHOUSE_FLOW_JSON__ = (.*);<\/script>/;
 
 describe('LighthouseStringifyExtension', function() {
   // eslint-disable-next-line no-invalid-this
-  this.timeout(50_000);
+  this.timeout(90_000);
 
   const state = createTestState();
   state.installServerHooks();
