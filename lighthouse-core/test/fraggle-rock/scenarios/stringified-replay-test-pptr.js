@@ -4,7 +4,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
  */
 
-import {promises as fs} from 'fs';
+import fs from 'fs';
 import {promisify} from 'util';
 import {execFile} from 'child_process';
 
@@ -33,18 +33,18 @@ describe('Running the stringified output script', function() {
   let scriptPath = '';
 
   before(async () => {
-    await fs.mkdir(tmpDir, {recursive: true});
+    fs.mkdirSync(tmpDir, {recursive: true});
     // Stringified exports are CJS
-    await fs.writeFile(`${tmpDir}/package.json`, '{"type": "commonjs"}');
+    fs.writeFileSync(`${tmpDir}/package.json`, '{"type": "commonjs"}');
   });
 
   beforeEach(async () => {
-    testTmpDir = await fs.mkdtemp(`${tmpDir}/replay-`);
+    testTmpDir = fs.mkdtempSync(`${tmpDir}/replay-`);
     scriptPath = `${testTmpDir}/stringified.js`;
   });
 
   after(async () => {
-    await fs.rm(tmpDir, {recursive: true, force: true});
+    fs.rmSync(tmpDir, {recursive: true, force: true});
   });
 
   it('generates a valid desktop flow report', async () => {
@@ -53,7 +53,7 @@ describe('Running the stringified output script', function() {
     });
 
     expect(scriptContents).toMatchSnapshot();
-    await fs.writeFile(scriptPath, scriptContents);
+    fs.writeFileSync(scriptPath, scriptContents);
 
     const {stdout, stderr} = await execFileAsync('node', [scriptPath], {timeout: 50_000});
 
@@ -61,7 +61,7 @@ describe('Running the stringified output script', function() {
     expect(stdout).toEqual('');
     expect(stderr).toEqual('');
 
-    const reportHtml = await fs.readFile(`${testTmpDir}/flow.report.html`, 'utf-8');
+    const reportHtml = fs.readFileSync(`${testTmpDir}/flow.report.html`, 'utf-8');
     const flowResultJson = FLOW_JSON_REGEX.exec(reportHtml)?.[1];
     if (!flowResultJson) throw new Error('Could not find flow json');
 
@@ -93,7 +93,7 @@ describe('Running the stringified output script', function() {
     });
 
     expect(scriptContents).toMatchSnapshot();
-    await fs.writeFile(scriptPath, scriptContents);
+    fs.writeFileSync(scriptPath, scriptContents);
 
     const {stdout, stderr} = await execFileAsync('node', [scriptPath], {timeout: 50_000});
 
@@ -101,7 +101,7 @@ describe('Running the stringified output script', function() {
     expect(stdout).toEqual('');
     expect(stderr).toEqual('');
 
-    const reportHtml = await fs.readFile(`${testTmpDir}/flow.report.html`, 'utf-8');
+    const reportHtml = fs.readFileSync(`${testTmpDir}/flow.report.html`, 'utf-8');
     const flowResultJson = FLOW_JSON_REGEX.exec(reportHtml)?.[1];
     if (!flowResultJson) throw new Error('Could not find flow json');
 
