@@ -8,9 +8,9 @@ from google.protobuf.json_format import Parse, MessageToJson
 path = os.path.realpath(__file__)
 path_dir = os.path.dirname(path)
 
-path_sample_preprocessed = path_dir + '/sample_v2_processed.json'
-path_sample = path_dir + '/../../lighthouse-core/test/results/sample_v2.json'
-path_round_trip = path_dir + '/../../.tmp/sample_v2_round_trip.json'
+path_sample_preprocessed = f'{path_dir}/sample_v2_processed.json'
+path_sample = f'{path_dir}/../../lighthouse-core/test/results/sample_v2.json'
+path_round_trip = f'{path_dir}/../../.tmp/sample_v2_round_trip.json'
 
 def clean():
     try:
